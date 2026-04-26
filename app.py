@@ -1,21 +1,26 @@
 from flask import Flask, request, jsonify
+from dotenv import load_dotenv
+import os
+
+from langchain_pinecone import PineconeVectorStore
+from src.helper import download_hugging_face_embeddings
+from pinecone import Pinecone
+
+load_dotenv()
 
 app = Flask(__name__)
 
-# Smart response function
-def get_ai_response(message):
-    message = message.lower()
+# Load embeddings
+embeddings = download_hugging_face_embeddings()
 
-    if "fever" in message:
-        return "You may have a viral infection. Stay hydrated and consult a doctor if symptoms persist."
-    elif "headache" in message:
-        return "Headaches can be caused by stress, dehydration, or lack of sleep."
-    elif "cough" in message:
-        return "A cough may indicate a cold or respiratory issue. Monitor your symptoms."
-    elif "stomach" in message:
-        return "Stomach pain could be due to indigestion or infection. Consider consulting a doctor."
-    else:
-        return "Please consult a medical professional for accurate advice."
+# Connect to Pinecone
+pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+index_name = "medical-chatbot"
+
+docsearch = PineconeVectorStore.from_existing_index(
+    index_name=index_name,
+    embedding=embeddings
+)
 
 # Home route
 @app.route("/")
@@ -28,7 +33,17 @@ def chat():
     data = request.json
     message = data.get("message")
 
-    response = get_ai_response(message)
+    # ✅ Handle empty input
+    if not message:
+        return jsonify({"answer": "Please enter a valid query"})
+
+    # 🔍 Retrieve from Pinecone
+    docs = docsearch.similarity_search(message, k=2)
+
+    if docs:
+        response = docs[0].page_content.replace("\n", " ").strip()[:300]
+    else:
+        response = "No relevant information found."
 
     return jsonify({"answer": response})
 
