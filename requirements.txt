@@ -9,3 +9,5 @@ langchain-community==0.3.26
 -e .
 
 gunicorn
+transformers==4.41.2
+tokenizers==0.19.1
