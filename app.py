@@ -25,7 +25,7 @@ def chat():
 
     # Handle empty input
     if not message:
-        return jsonify({"answer": "Please enter a valid query"})
+        return jsonify({"reply": "Please enter a valid query"})
 
     # Load embeddings ONLY during request
     embeddings = download_hugging_face_embeddings()
@@ -47,7 +47,7 @@ def chat():
     else:
         response = "No relevant information found."
 
-    return jsonify({"answer": response})
+    return jsonify({"reply": response})
 
 # Run server
 if __name__ == "__main__":
